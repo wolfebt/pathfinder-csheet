@@ -1072,9 +1072,78 @@ function printDocument() {
         alert("PDF generation library is not loaded yet. Please try again in a moment.");
         return;
     }
-    // Placeholder for a more complex PDF generation logic
-    alert("PDF printing is a complex feature. This is a placeholder. For now, please use your browser's Print to PDF function (Ctrl+P or Cmd+P).");
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const state = characterState;
+    
+    const margin = 10;
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const contentW = pageW - (margin * 2);
+    let y = margin;
+    
+    // Helper function to check if we need a new page
+    const checkY = (heightNeeded) => {
+        if (y + heightNeeded > pageH - margin) {
+            doc.addPage();
+            y = margin;
+        }
+    };
+    
+    // Helper to draw a field with a label and either a value or a blank line
+    const drawField = (label, value, x, y, fieldWidth, labelWidth = 30) => {
+        doc.setFontSize(8).setFont(undefined, 'bold');
+        doc.text(label, x, y);
+        doc.setFontSize(10).setFont(undefined, 'normal');
+        const textX = x + labelWidth;
+        if (value) {
+            doc.text(String(value), textX, y);
+        } else {
+            doc.setDrawColor(150); // a light gray for the line
+            doc.line(textX, y + 1, x + fieldWidth, y + 1);
+        }
+    };
+
+    // --- PAGE 1 ---
+    
+    // Title
+    doc.setFontSize(18).setFont(undefined, 'bold');
+    doc.text("Pathfinder Character Sheet", pageW / 2, y, { align: 'center' });
+    y += 8;
+
+    // Character Info
+    doc.setFontSize(12).setFont(undefined, 'bold');
+    doc.text("Character Info", margin, y);
+    y += 5;
+    
+    const col1X = margin;
+    const col2X = margin + (contentW / 2) + 5;
+    const fieldWidth = contentW / 2 - 5;
+    
+    drawField("Name:", state.name, col1X, y, fieldWidth);
+    drawField("Class & Level:", state.classLevel, col2X, y, fieldWidth);
+    y += 6;
+    drawField("Race:", state.race, col1X, y, fieldWidth);
+    drawField("Character Level:", state.characterLevel, col2X, y, fieldWidth);
+    y += 6;
+    drawField("Alignment:", state.alignment, col1X, y, fieldWidth);
+    drawField("Campaign:", state.campaign, col2X, y, fieldWidth);
+    y += 6;
+    drawField("Height:", state.height, col1X, y, fieldWidth);
+    drawField("Weight:", state.weight, col2X, y, fieldWidth);
+    y+= 6;
+    drawField("Description:", state.description, col1X, y, contentW);
+    y += 10;
+    
+    // --- More sections would be drawn here following the same pattern ---
+    // This is a simplified example. A full implementation would require drawing
+    // every single section (Abilities, Combat, Skills, Weapons, etc.) with
+    // careful coordinate management and multi-page handling.
+    
+    // Save the PDF
+    doc.save(`${state.name.replace(/\s/g, '_') || 'pathfinder-character'}.pdf`);
 }
+
+
 
 function populateFormFromState() {
     document.querySelectorAll('[data-path]').forEach(el => {
