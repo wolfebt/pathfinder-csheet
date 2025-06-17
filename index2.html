@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pathfinder Character Sheet</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF-AutoTable plugin for creating tables in PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* bg-gray-900 */
+            color: #e5e7eb; /* text-gray-200 */
+        }
+        /* Custom styles for input fields to match the dark theme */
+        .form-input-custom {
+            background-color: #374151; /* bg-gray-700 */
+            border: 1px solid #4b5563; /* border-gray-600 */
+            border-radius: 0.375rem; /* rounded-md */
+            padding: 0.25rem 0.5rem;
+            color: #f9fafb; /* text-white */
+            width: 100%;
+            min-width: 0;
+        }
+        .form-input-custom:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #22d3ee; /* focus:ring-2 focus:ring-cyan-400 */
+        }
+        .section {
+             background-color: #1f2937; /* bg-gray-800 */
+             padding: 1rem;
+             border-radius: 0.5rem; /* rounded-lg */
+             border: 1px solid #374151; /* border-gray-700 */
+             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .section-title {
+            font-size: 1.125rem; /* text-lg */
+            font-weight: 700; /* font-bold */
+            color: #22d3ee; /* text-cyan-400 */
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .label-sm {
+            font-size: 0.75rem; /* text-xs */
+            text-transform: uppercase;
+            font-weight: 700; /* font-bold */
+            color: #9ca3af; /* text-gray-400 */
+            margin-top: 0.25rem;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- Modal for alerts -->
+    <div id="modal-container" class="hidden fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+        <div class="bg-gray-800 rounded-lg shadow-xl p-6 w-11/12 md:w-1/3">
+            <div class="text-white mb-4" id="modal-text"></div>
+            <button id="modal-close-button" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded w-full">Close</button>
+        </div>
+    </div>
+
+    <div id="character-sheet-container" class="p-2 sm:p-4 lg:p-6">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-start my-4 relative">
+            <div class="relative">
+                <button id="file-menu-button" class="border-2 border-cyan-400 text-cyan-400 font-bold py-2 px-4 rounded-lg hover:bg-cyan-400 hover:text-gray-900 transition-colors duration-300">
+                    File
+                </button>
+                <div id="file-menu" class="hidden absolute left-0 mt-2 w-48 bg-gray-800 border border-gray-600 rounded-md shadow-lg z-10">
+                    <div class="py-1">
+                        <h3 class="px-3 py-1 text-xs text-gray-400 uppercase">JSON</h3>
+                        <button id="save-json-button" class="w-full text-left px-3 py-1 text-sm text-white hover:bg-gray-700">Save to File</button>
+                        <button id="load-json-button" class="w-full text-left px-3 py-1 text-sm text-white hover:bg-gray-700">Load from File</button>
+                        <div class="border-t border-gray-600 my-1"></div>
+                        <h3 class="px-3 py-1 text-xs text-gray-400 uppercase">Cloud</h3>
+                        <button class="w-full text-left px-3 py-1 text-sm text-gray-500 cursor-not-allowed" disabled>Save to Cloud</button>
+                        <button class="w-full text-left px-3 py-1 text-sm text-gray-500 cursor-not-allowed" disabled>Load from Cloud</button>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center">
+                <h1 class="text-4xl sm:text-5xl font-bold text-white tracking-wider">Pathfinder Character Sheet</h1>
+                <p class="text-cyan-400">A digital folio for your adventures.</p>
+            </div>
+            <button id="print-pdf-button" class="border-2 border-cyan-400 text-cyan-400 font-bold py-2 px-4 rounded-lg hover:bg-cyan-400 hover:text-gray-900 transition-colors duration-300">
+                Print to PDF
+            </button>
+        </header>
+
+        <main class="max-w-7xl mx-auto space-y-4">
+            <!-- Character Info -->
+            <section class="section">
+                <div id="character-info-container" class="space-y-4">
+                        <!-- Populated by JS -->
+                </div>
+            </section>
+            
+            <!-- Ability Scores -->
+            <section class="section">
+                <h2 class="section-title">Ability Scores</h2>
+                <div id="ability-scores-grid" class="grid grid-cols-3 md:grid-cols-6 gap-x-4 gap-y-6">
+                    <!-- Ability scores will be generated by JS here -->
+                </div>
+            </section>
+
+            <!-- Combat Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <!-- Health Column -->
+                <div class="md:col-span-2 space-y-4">
+                    <section class="section">
+                        <h2 class="section-title">Health & Vitals</h2>
+                        <div id="health-vitals-grid" class="grid grid-cols-2 gap-x-4 gap-y-2">
+                                <!-- Health inputs will be generated here -->
+                        </div>
+                    </section>
+                    <section class="section">
+                        <h2 class="section-title">Initiative</h2>
+                        <div class="flex items-center justify-around">
+                            <div class="text-center">
+                                <span id="initiative-total" class="text-5xl font-bold">+0</span>
+                                <h4 class="label-sm">Total</h4>
+                            </div>
+                            <div class="text-2xl">=</div>
+                            <div class="text-center">
+                                <input id="initiative-dex" class="form-input-custom text-center w-20" value="+0" readonly/>
+                                <label class="label-sm">Dex Mod</label>
+                            </div>
+                            <div class="text-2xl">+</div>
+                            <div class="text-center">
+                                <input id="initiative-misc" type="number" data-path="initiative.misc" class="form-input-custom text-center w-20" value="0"/>
+                                <label class="label-sm">Misc</label>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- AC & Movement Column -->
+                <div class="md:col-span-3">
+                    <section class="section">
+                        <h2 class="section-title">Armor Class</h2>
+                        <div class="flex flex-wrap items-center justify-around gap-4">
+                            <div class="text-center">
+                                <div class="border-2 border-cyan-400 rounded-full w-24 h-24 flex items-center justify-center">
+                                    <span id="ac-total" class="text-4xl font-bold">10</span>
+                                </div>
+                                <h4 class="font-bold uppercase mt-2">Total AC</h4>
+                            </div>
+                            <div class="text-gray-400 text-2xl font-bold">= 10 +</div>
+                            <div id="ac-inputs" class="grid grid-cols-3 gap-x-4 gap-y-2 text-center">
+                                <!-- AC inputs will be generated by JS here -->
+                            </div>
+                        </div>
+                    </section>
+                    <section class="section mt-4">
+                        <h2 class="section-title">Movement</h2>
+                        <div id="movement-inputs" class="grid grid-cols-3 gap-4">
+                                <!-- Movement inputs will be generated here -->
+                        </div>
+                    </section>
+                </div>
+                
+                <!-- Saves -->
+                <div class="md:col-span-3 space-y-4">
+                     <section class="section">
+                        <h2 class="section-title">Saves</h2>
+                        <div id="saves-container" class="space-y-3">
+                                <!-- Saves will be generated by JS here -->
+                        </div>
+                        <textarea data-path="saves.conditionalMods" placeholder="Conditional Modifiers" rows="1" class="form-input-custom mt-3"></textarea>
+                    </section>
+                </div>
+
+                <!-- Combat Maneuvers -->
+                <div class="md:col-span-2 space-y-4">
+                    <section class="section">
+                        <h2 class="section-title">Combat</h2>
+                        <div class="space-y-4">
+                            <div class="text-center">
+                               <input type="number" data-path="bab" class="form-input-custom text-center" value="0"/>
+                               <label class="label-sm">Base Attack Bonus</label>
+                            </div>
+                            <div class="bg-gray-900 p-2 rounded-lg text-center">
+                                <h4 class="label-sm mb-2">Combat Maneuver Bonus (CMB)</h4>
+                                <div class="flex flex-wrap items-end justify-center gap-x-2 gap-y-2">
+                                    <div>
+                                        <span id="cmb-total" class="text-2xl font-bold w-12 text-center inline-block">+0</span>
+                                        <label class="label-sm block">Total</label>
+                                    </div>
+                                    <span class="text-lg pb-4">=</span>
+                                    <div>
+                                        <input id="cmb-bab" class="form-input-custom text-center w-12" readonly/>
+                                        <label class="label-sm">BAB</label>
+                                    </div>
+                                    <span class="text-lg pb-4">+</span>
+                                    <div>
+                                        <input id="cmb-str" class="form-input-custom text-center w-12" readonly/>
+                                        <label class="label-sm">STR</label>
+                                    </div>
+                                    <span class="text-lg pb-4">+</span>
+                                    <div>
+                                        <input id="cmb-size" class="form-input-custom text-center w-12" readonly/>
+                                        <label class="label-sm">Size</label>
+                                    </div>
+                                    <span class="text-lg pb-4">+</span>
+                                    <div>
+                                        <input data-path="cmb.misc" type="number" class="form-input-custom text-center w-12"/>
+                                        <label class="label-sm">Misc</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="bg-gray-900 p-2 rounded-lg text-center">
+                                <h4 class="label-sm mb-2">Combat Maneuver Defense (CMD)</h4>
+                                <div class="flex flex-wrap items-end justify-center gap-x-1 gap-y-2">
+                                    <div>
+                                        <span id="cmd-total" class="text-2xl font-bold w-12 text-center inline-block">10</span>
+                                        <label class="label-sm block">Total</label>
+                                    </div>
+                                    <span class="text-lg pb-4">= 10 +</span>
+                                    <div>
+                                        <input id="cmd-bab" class="form-input-custom text-center w-12" readonly/>
+                                        <label class="label-sm">BAB</label>
+                                    </div>
+                                    <span class="text-lg pb-4">+</span>
+                                    <div>
+                                        <input id="cmd-str" class="form-input-custom text-center w-12" readonly/>
+                                        <label class="label-sm">STR</label>
+                                    </div>
+                                    <span class="text-lg pb-4">+</span>
+                                    <div>
+                                        <input id="cmd-dex" class="form-input-custom text-center w-12" readonly/>
+                                        <label class="label-sm">DEX</label>
+                                    </div>
+                                     <span class="text-lg pb-4">+</span>
+                                    <div>
+                                        <input data-path="cmd.misc" type="number" class="form-input-custom text-center w-12"/>
+                                        <label class="label-sm">Misc</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Weapons -->
+            <section class="section">
+                <h2 class="section-title">Weapons & Attacks</h2>
+                <div class="space-y-2">
+                    <div class="hidden md:grid grid-cols-12 gap-2 text-xs uppercase font-bold text-gray-400">
+                        <span class="col-span-3">Weapon</span>
+                        <span class="col-span-2">Attack Bonus</span>
+                        <span class="col-span-2">Damage</span>
+                        <span class="col-span-1">Critical</span>
+                        <span class="col-span-3">Notes</span>
+                        <span class="col-span-1"></span>
+                    </div>
+                    <div id="weapons-list">
+                        <!-- Weapon rows will be generated by JS here -->
+                    </div>
+                </div>
+                <button id="add-weapon-button" class="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded transition-colors duration-300">
+                    Add Weapon
+                </button>
+            </section>
+            
+            <!-- Skills -->
+            <section class="section">
+                <h2 class="section-title">Skills</h2>
+                <div id="skills-container" class="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                    <!-- Skills will be populated here by JS -->
+                </div>
+            </section>
+
+             <!-- Feats, Abilities, etc. -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div class="space-y-4">
+                    <section id="racialAbilities-section" class="section"></section>
+                    <section id="specialAbilities-section" class="section"></section>
+                    <section id="feats-section" class="section"></section>
+                </div>
+                <section class="section">
+                    <h2 class="section-title">Spellcasting</h2>
+                    <div class="grid grid-cols-5 text-xs uppercase font-bold text-gray-400 mb-2 items-center text-center">
+                       <span>Level</span>
+                       <span>Known</span>
+                       <span>/Day</span>
+                       <span>Bonus</span>
+                       <span>Save DC</span>
+                    </div>
+                    <div id="spellcasting-levels" class="space-y-2">
+                        <!-- Spell levels will be generated by JS -->
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4 mt-4">
+                         <input type="text" data-path="spellcasting.specialtySchool" placeholder="Specialty School / Bloodline" class="form-input-custom">
+                         <input type="text" data-path="spellcasting.prohibitedSchools" placeholder="Prohibited Schools" class="form-input-custom">
+                         <textarea data-path="spellcasting.conditionalMods" placeholder="Conditional Spell Modifiers" rows="2" class="md:col-span-2 form-input-custom"></textarea>
+                    </div>
+                </section>
+            </div>
+            
+            <!-- Equipment and Currency -->
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="lg:col-span-2 space-y-4">
+                        <section class="section">
+                            <h2 class="section-title">Armor & Shield</h2>
+                            <div class="space-y-2">
+                                <div class="hidden md:grid grid-cols-10 gap-2 text-xs uppercase font-bold text-gray-400 text-center">
+                                    <span class="col-span-3 text-left">Type</span>
+                                    <span>AC+</span>
+                                    <span>Max Dex</span>
+                                    <span>Check</span>
+                                    <span>Spell Fail</span>
+                                    <span class="col-span-1">Wt.</span>
+                                    <span class="col-span-2">Don Time</span>
+                                </div>
+                                <div id="armor-shield-list">
+                                    <!-- Armor rows generated by JS -->
+                                </div>
+                            </div>
+                        </section>
+                        <section id="magicalEquipment-section" class="section"></section>
+                    </div>
+                    <div class="space-y-4">
+                        <section class="section">
+                            <h2 class="section-title">Currency</h2>
+                            <div id="currency-inputs" class="grid grid-cols-2 gap-2">
+                                <!-- Currency inputs generated by JS -->
+                            </div>
+                        </section>
+                        <section class="section">
+                            <h2 class="section-title">Encumbrance</h2>
+                            <div id="encumbrance-details">
+                                <!-- Encumbrance details generated by JS -->
+                            </div>
+                        </section>
+                    </div>
+                </div>
+                <section id="mundaneEquipment-section" class="section"></section>
+            </div>
+
+             <!-- Notes & History -->
+            <section class="section">
+                <h2 class="section-title">Character History</h2>
+                <textarea data-path="characterHistory" rows="5" class="form-input-custom"></textarea>
+            </section>
+            <section class="section">
+                <h2 class="section-title">Notes</h2>
+                <textarea data-path="notes" rows="5" class="form-input-custom"></textarea>
+            </section>
+        </main>
+        
+        <footer class="text-center text-xs text-gray-600 mt-8 pb-4">
+            This character sheet is not published, endorsed, or specifically approved by Paizo Publishing. Based on the Pathfinder system.
+             <div class="text-center text-xs text-gray-500 mt-2">Wolfe.BT@TangentLLC</div>
+        </footer>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+// --- DATA & CONFIGURATION ---
+const ABILITIES = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+const SKILLS_DATA = [
+    { name: "Acrobatics", ability: "DEX" }, { name: "Appraise", ability: "INT" }, { name: "Bluff", ability: "CHA" },
+    { name: "Climb", ability: "STR" }, { name: "Craft", ability: "INT", isMultiple: true }, { name: "Diplomacy", ability: "CHA" },
+    { name: "Disable Device", ability: "DEX", trainedOnly: true }, { name: "Disguise", ability: "CHA" }, { name: "Escape Artist", ability: "DEX" },
+    { name: "Fly", ability: "DEX" }, { name: "Handle Animal", ability: "CHA", trainedOnly: true }, { name: "Heal", ability: "WIS" },
+    { name: "Intimidate", ability: "CHA" }, { name: "Know (Arcana)", ability: "INT", trainedOnly: true }, { name: "Know (Dungeoneering)", ability: "INT", trainedOnly: true },
+    { name: "Know (Engineering)", ability: "INT", trainedOnly: true }, { name: "Know (Geography)", ability: "INT", trainedOnly: true }, { name: "Know (History)", ability: "INT", trainedOnly: true },
+    { name: "Know (Local)", ability: "INT", trainedOnly: true }, { name: "Know (Nature)", ability: "INT", trainedOnly: true }, { name: "Know (Nobility)", ability: "INT", trainedOnly: true },
+    { name: "Know (Planes)", ability: "INT", trainedOnly: true }, { name: "Know (Religion)", ability: "INT", trainedOnly: true }, { name: "Linguistics", ability: "INT", trainedOnly: true },
+    { name: "Perception", ability: "WIS" }, { name: "Perform", ability: "CHA", isMultiple: true }, { name: "Profession", ability: "WIS", trainedOnly: true, isMultiple: true },
+    { name: "Ride", ability: "DEX" }, { name: "Sense Motive", ability: "WIS" }, { name: "Sleight of Hand", ability: "DEX", trainedOnly: true },
+    { name: "Spellcraft", ability: "INT", trainedOnly: true }, { name: "Stealth", ability: "DEX" }, { name: "Survival", ability: "WIS" },
+    { name: "Swim", ability: "STR" }, { name: "Use Magic Device", ability: "CHA", trainedOnly: true }
+];
+
+const CARRYING_CAPACITY_TABLE = {
+    1: { light: 3, medium: 6, heavy: 10 }, 2: { light: 6, medium: 13, heavy: 20 }, 3: { light: 10, medium: 20, heavy: 30 },
+    4: { light: 13, medium: 26, heavy: 40 }, 5: { light: 16, medium: 33, heavy: 50 }, 6: { light: 20, medium: 40, heavy: 60 },
+    7: { light: 23, medium: 46, heavy: 70 }, 8: { light: 26, medium: 53, heavy: 80 }, 9: { light: 30, medium: 60, heavy: 90 },
+    10: { light: 33, medium: 66, heavy: 100 }, 11: { light: 38, medium: 76, heavy: 115 }, 12: { light: 43, medium: 86, heavy: 130 },
+    13: { light: 50, medium: 100, heavy: 150 }, 14: { light: 58, medium: 116, heavy: 175 }, 15: { light: 66, medium: 133, heavy: 200 },
+    16: { light: 76, medium: 153, heavy: 230 }, 17: { light: 86, medium: 173, heavy: 260 }, 18: { light: 100, medium: 200, heavy: 300 },
+    19: { light: 116, medium: 233, heavy: 350 }, 20: { light: 133, medium: 266, heavy: 400 }, 21: { light: 153, medium: 306, heavy: 460 },
+    22: { light: 173, medium: 346, heavy: 520 }, 23: { light: 200, medium: 400, heavy: 600 }, 24: { light: 233, medium: 466, heavy: 700 },
+    25: { light: 266, medium: 533, heavy: 800 }, 26: { light: 306, medium: 613, heavy: 920 }, 27: { light: 346, medium: 693, heavy: 1040 },
+    28: { light: 400, medium: 800, heavy: 1200 }, 29: { light: 466, medium: 933, heavy: 1400 },
+};
+
+// --- STATE MANAGEMENT ---
+// This one object holds all the data for the character sheet.
+let characterState = {};
+
+function getInitialState() {
+    return {
+        name: '', classLevel: '', race: '', alignment: '', characterLevel: '', height: '', weight: '', description: '', campaign: '',
+        abilityScores: { STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10 },
+        hp: { max: 10, current: 10, nonlethal: 0 },
+        hitDice: '', heroPoints: '',
+        initiative: { misc: 0 },
+        ac: { armor: 0, shield: 0, natural: 0, deflect: 0, dodge: 0, size: 0 },
+        saves: {
+            fortitude: { base: 0, magic: 0, misc: 0, temp: 0 },
+            reflex: { base: 0, magic: 0, misc: 0, temp: 0 },
+            will: { base: 0, magic: 0, misc: 0, temp: 0 },
+            conditionalMods: ''
+        },
+        bab: 0,
+        cmb: { misc: 0 },
+        cmd: { misc: 0 },
+        resistances: { dr: '', sr: ''},
+        movement: { walk: 30, swim: '', fly: '', climb: '', burrow: ''},
+        weapons: [{ name: '', attack: '', damage: '', critical: '', range: '', type: '', notes: '' }],
+        skills: SKILLS_DATA.reduce((acc, skill) => {
+            acc[skill.name] = { ranks: 0, misc: 0, isClassSkill: false };
+            if (skill.isMultiple) {
+                acc[`${skill.name}2`] = { name: '', ranks: 0, misc: 0, isClassSkill: false };
+            }
+            return acc;
+        }, {}),
+        feats: [{ name: '', reference: '' }],
+        racialAbilities: [{ name: '', reference: '' }],
+        specialAbilities: [{ name: '', level: '', reference: '' }],
+        spellcasting: {
+            levels: Array(10).fill(null).map((_, i) => ({ level: i, known: '', perDay: '', bonus: '', dc: '' })),
+            specialtySchool: '', prohibitedSchools: '', conditionalMods: ''
+        },
+        mundaneEquipment: [{ item: '', description: '', location: '', wt: '' }],
+        magicalEquipment: [{ item: '', wt: '', location: '' }],
+        currency: { pp: 0, gp: 0, sp: 0, cp: 0 },
+        armorAndShield: {
+            armor1: { type: '', ac: '', maxDex: '', check: '', spellFail: '', donTime: '', wt: '' },
+            armor2: { type: '', ac: '', maxDex: '', check: '', spellFail: '', donTime: '', wt: '' },
+            shield: { type: '', ac: '', maxDex: '', check: '', spellFail: '', donTime: '', wt: '' },
+        },
+        characterHistory: '',
+        notes: '',
+    };
+}
+
+
+// --- UTILITY FUNCTIONS ---
+const calculateModifier = (score) => Math.floor(((score || 10) - 10) / 2);
+const formatModifier = (mod) => (mod >= 0 ? `+${mod}` : mod);
+
+// Function to update a value in the characterState object based on a path like "abilityScores.STR"
+function updateState(path, value) {
+    let schema = characterState;
+    const keys = path.split('.');
+    const len = keys.length;
+    for (let i = 0; i < len - 1; i++) {
+        const key = keys[i];
+        if (!schema[key]) schema[key] = {};
+        schema = schema[key];
+    }
+    
+    const el = document.querySelector(`[data-path="${path}"]`);
+    if (el && el.type === 'checkbox') {
+        schema[keys[len-1]] = value;
+    } else if (typeof schema[keys[len - 1]] === 'number' && value !== '') {
+        schema[keys[len - 1]] = parseInt(value, 10) || 0;
+    } else {
+        schema[keys[len - 1]] = value;
+    }
+    
+    // After any change, re-render all calculated parts of the UI
+    updateUI();
+}
+
+// --- MAIN UI UPDATE FUNCTION ---
+// This function is the heart of the interactivity. It reads from the characterState
+// and updates all the calculated values on the page.
+function updateUI() {
+    const { abilityScores, ac, bab, saves, cmb: cmbState, cmd: cmdState } = characterState;
+    
+    // Ability Modifiers
+    const dexMod = calculateModifier(abilityScores.DEX);
+    const strMod = calculateModifier(abilityScores.STR);
+    const sizeMod = ac.size || 0;
+    
+    // Re-render ability scores to show new modifiers
+    renderAbilityScores();
+
+    // Initiative
+    document.getElementById('initiative-total').textContent = formatModifier(dexMod + (characterState.initiative.misc || 0));
+    document.getElementById('initiative-dex').value = formatModifier(dexMod);
+
+    // Armor Class
+    const totalAc = 10 + (ac.armor || 0) + (ac.shield || 0) + dexMod + sizeMod + (ac.natural || 0) + (ac.deflect || 0) + (ac.dodge || 0);
+    document.getElementById('ac-total').textContent = totalAc;
+    document.querySelector('[data-path="ac.dex-display"]').value = formatModifier(dexMod);
+
+    // Saves
+    ['fortitude', 'reflex', 'will'].forEach(save => {
+        const ability = save === 'fortitude' ? 'CON' : save === 'reflex' ? 'DEX' : 'WIS';
+        const abilityMod = calculateModifier(abilityScores[ability]);
+        const saveState = saves[save];
+        const total = (saveState.base || 0) + abilityMod + (saveState.magic || 0) + (saveState.misc || 0) + (saveState.temp || 0);
+        
+        document.getElementById(`save-total-${save}`).textContent = formatModifier(total);
+        document.querySelector(`[data-path="saves.${save}.ability-display"]`).value = formatModifier(abilityMod);
+    });
+
+    // Combat Maneuvers
+    const cmbTotal = (bab || 0) + strMod + sizeMod + (cmbState.misc || 0);
+    const cmdTotal = 10 + (bab || 0) + strMod + dexMod + sizeMod + (ac.dodge || 0) + (ac.deflect || 0) + (cmdState.misc || 0);
+    document.getElementById('cmb-total').textContent = formatModifier(cmbTotal);
+    document.getElementById('cmd-total').textContent = cmdTotal;
+    document.getElementById('cmb-bab').value = bab || 0;
+    document.getElementById('cmd-bab').value = bab || 0;
+    document.getElementById('cmb-str').value = formatModifier(strMod);
+    document.getElementById('cmd-str').value = formatModifier(strMod);
+    document.getElementById('cmb-size').value = sizeMod || 0;
+    document.getElementById('cmd-dex').value = formatModifier(dexMod);
+
+
+    // Skills
+    renderSkills();
+
+    // Encumbrance
+    renderEncumbrance();
+}
+
+// --- RENDER FUNCTIONS ---
+// These functions build the initial HTML for different sections of the sheet.
+
+function renderInitialHTML() {
+    renderCharacterInfoInputs();
+    renderAbilityScores();
+    renderHealthVitals();
+    renderAcInputs();
+    renderMovementInputs();
+    renderSaves();
+    renderWeapons();
+    renderSkills();
+    renderDynamicListSections();
+    renderSpellcasting();
+    renderArmorShield();
+    renderCurrency();
+    renderEncumbrance();
+    
+    // Bind event listeners to all inputs
+    bindEventListeners();
+}
+
+function renderCharacterInfoInputs() {
+    const container = document.getElementById('character-info-container');
+    const rows = [
+        [{ name: "name", label: "Character Name"}, { name: "classLevel", label: "Class & Level"}],
+        [{ name: "race", label: "Race"}, { name: "characterLevel", label: "Character Level"}],
+        [{ name: "alignment", label: "Alignment"}, { name: "campaign", label: "Campaign"}],
+        [{ name: "height", label: "Height"}, { name: "weight", label: "Weight"}]
+    ];
+    let html = '';
+    rows.forEach(row => {
+        html += '<div class="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">';
+        row.forEach(field => {
+            html += `
+                <div class="flex-1">
+                    <label for="${field.name}" class="text-sm text-gray-400">${field.label}</label>
+                    <input type="text" name="${field.name}" data-path="${field.name}" class="bg-transparent border-b-2 border-gray-600 text-white text-lg w-full focus:outline-none focus:border-cyan-400">
+                </div>
+            `;
+        });
+        html += '</div>';
+    });
+    html += `
+        <div class="flex flex-col pt-2">
+             <label for="description" class="text-sm text-gray-400">Description</label>
+             <textarea name="description" data-path="description" rows="2" class="form-input-custom mt-1"></textarea>
+        </div>
+    `;
+    container.innerHTML = html;
+}
+
+function renderAbilityScores() {
+    const container = document.getElementById('ability-scores-grid');
+    let html = '';
+    ABILITIES.forEach(ability => {
+        const score = characterState.abilityScores[ability];
+        const mod = formatModifier(calculateModifier(score));
+        html += `
+            <div class="bg-gray-900 p-2 rounded-lg text-center border border-gray-700 flex flex-col justify-between">
+                <h3 class="font-bold text-xl text-white uppercase">${ability}</h3>
+                <div class="my-2">
+                    <input type="number" data-path="abilityScores.${ability}" class="form-input-custom text-center w-full text-4xl font-bold bg-gray-800 border-2 border-gray-600 py-2" value="${score}"/>
+                    <label class="label-sm">Score</label>
+                </div>
+                <div class="bg-gray-700 rounded-md p-1">
+                    <span class="text-lg font-bold text-white">${mod}</span>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+    bindEventListenersForContainer(container);
+}
+
+
+function renderHealthVitals() {
+    const container = document.getElementById('health-vitals-grid');
+    const fields = [
+        { path: 'hp.max', label: 'Max HP' }, { path: 'hp.current', label: 'Current HP' },
+        { path: 'hp.nonlethal', label: 'Nonlethal', className: 'col-span-2' },
+        { path: 'hitDice', label: 'Hit Dice' }, { path: 'heroPoints', label: 'Hero Points' },
+        { path: 'resistances.dr', label: 'DR' }, { path: 'resistances.sr', label: 'SR' }
+    ];
+    let html = '';
+    fields.forEach(f => {
+        const value = f.path.includes('.') ? characterState[f.path.split('.')[0]][f.path.split('.')[1]] : characterState[f.path];
+        html += `
+            <div class="text-center ${f.className || ''}">
+                <input type="${typeof value === 'number' ? 'number' : 'text'}" data-path="${f.path}" class="form-input-custom text-center" value="${value}"/>
+                <label class="label-sm">${f.label}</label>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function renderAcInputs() {
+    const container = document.getElementById('ac-inputs');
+    const fields = [
+        { path: 'ac.armor', label: 'Armor', type: 'number' }, { path: 'ac.shield', label: 'Shield', type: 'number' },
+        { path: 'ac.dex-display', label: 'Dex Mod', readonly: true }, { path: 'ac.size', label: 'Size', type: 'number' },
+        { path: 'ac.natural', label: 'Natural', type: 'number' }, { path: 'ac.dodge', label: 'Dodge', type: 'number' }
+    ];
+    let html = '';
+    fields.forEach(f => {
+         html += `
+            <div class="text-center">
+                <input type="${f.type || 'text'}" data-path="${f.path}" class="form-input-custom text-center w-20" ${f.readonly ? 'readonly' : ''}/>
+                <label class="label-sm">${f.label}</label>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function renderMovementInputs() {
+    const container = document.getElementById('movement-inputs');
+    const fields = [
+        { path: 'movement.walk', label: 'Walk', placeholder: '30 ft.'},
+        { path: 'movement.swim', label: 'Swim', placeholder: 'ft.'},
+        { path: 'movement.fly', label: 'Fly', placeholder: 'ft.'}
+    ];
+    let html = '';
+    fields.forEach(f => {
+        html += `
+             <div class="text-center">
+                <input type="text" data-path="${f.path}" class="form-input-custom text-center" placeholder="${f.placeholder}"/>
+                <label class="label-sm">${f.label}</label>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function renderSaves() {
+    const container = document.getElementById('saves-container');
+    let html = `
+        <div class="grid grid-cols-9 gap-2 text-xs uppercase font-bold text-gray-400 text-center mb-1">
+            <div class="col-span-3 text-left">Save</div>
+            <div>Total</div>
+            <div class="w-px"></div> <!-- Spacer for equals -->
+            <div>Base</div>
+            <div>Ability</div>
+            <div>Magic</div>
+            <div>Misc</div>
+        </div>
+    `;
+    ['fortitude', 'reflex', 'will'].forEach(save => {
+        const ability = save === 'fortitude' ? 'CON' : save === 'reflex' ? 'DEX' : 'WIS';
+        html += `
+        <div class="bg-gray-900 p-2 rounded-lg grid grid-cols-9 gap-2 items-center">
+            <h4 class="col-span-3 font-bold uppercase text-white">${save} <span class="text-gray-400">(${ability})</span></h4>
+            <div id="save-total-${save}" class="text-xl font-bold bg-gray-700 text-center py-1 rounded-md">+0</div>
+            <div class="text-center text-lg">=</div>
+            <input class="form-input-custom text-center" type="number" data-path="saves.${save}.base" />
+            <input class="form-input-custom text-center" data-path="saves.${save}.ability-display" readonly />
+            <input class="form-input-custom text-center" type="number" data-path="saves.${save}.magic" />
+            <input class="form-input-custom text-center" type="number" data-path="saves.${save}.misc" />
+        </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function renderWeapons() {
+    const container = document.getElementById('weapons-list');
+    container.innerHTML = ''; // Clear existing
+    characterState.weapons.forEach((weapon, index) => {
+        const weaponRow = document.createElement('div');
+        weaponRow.className = 'grid grid-cols-1 md:grid-cols-12 gap-2 items-center';
+        weaponRow.innerHTML = `
+            <input type="text" placeholder="Weapon Name" class="col-span-1 md:col-span-3 form-input-custom" value="${weapon.name || ''}" data-array="weapons" data-index="${index}" data-field="name" />
+            <input type="text" placeholder="+0" class="col-span-1 md:col-span-2 form-input-custom" value="${weapon.attack || ''}" data-array="weapons" data-index="${index}" data-field="attack" />
+            <input type="text" placeholder="1d8+0" class="col-span-1 md:col-span-2 form-input-custom" value="${weapon.damage || ''}" data-array="weapons" data-index="${index}" data-field="damage" />
+            <input type="text" placeholder="20/x2" class="col-span-1 md:col-span-1 form-input-custom" value="${weapon.critical || ''}" data-array="weapons" data-index="${index}" data-field="critical" />
+            <input type="text" placeholder="Notes" class="col-span-1 md:col-span-3 form-input-custom" value="${weapon.notes || ''}" data-array="weapons" data-index="${index}" data-field="notes" />
+            <button class="remove-weapon-button text-red-500 hover:text-red-400 font-bold col-span-1 text-right pr-2" data-index="${index}">X</button>
+        `;
+        container.appendChild(weaponRow);
+    });
+    // Re-bind click events for remove buttons
+    document.querySelectorAll('.remove-weapon-button').forEach(button => {
+        button.onclick = (e) => {
+            const index = parseInt(e.target.dataset.index, 10);
+            characterState.weapons.splice(index, 1);
+            renderWeapons();
+            bindEventListenersForContainer(container);
+        };
+    });
+}
+
+function renderSkills() {
+    const container = document.getElementById('skills-container');
+    container.innerHTML = ''; // Clear children
+
+    // Create headers for each column
+    const headerHTML = `
+        <div class="text-xs uppercase font-bold text-gray-400 mb-2 px-2">
+            <div class="flex w-full items-center space-x-2">
+                 <span class="w-4"></span> <!-- Checkbox spacer -->
+                 <span class="flex-grow">Skill Name</span>
+                 <span class="w-16 text-center">Total</span>
+                 <span class="w-20 text-center">Ability Mod</span>
+                 <span class="w-16 text-center">Ranks</span>
+                 <span class="w-16 text-center">Misc</span>
+            </div>
+        </div>
+    `;
+
+    const middleIndex = Math.ceil(SKILLS_DATA.length / 2);
+    const columns = [SKILLS_DATA.slice(0, middleIndex), SKILLS_DATA.slice(middleIndex)];
+    
+    columns.forEach(columnData => {
+        const columnDiv = document.createElement('div');
+        columnDiv.className = "flex flex-col space-y-1";
+        columnDiv.innerHTML = headerHTML;
+
+        columnData.forEach(skill => {
+            const skillState = characterState.skills[skill.name];
+            if (!skillState) return;
+
+            const abilityMod = calculateModifier(characterState.abilityScores[skill.ability]);
+            const classSkillBonus = (skillState.isClassSkill && skillState.ranks > 0) ? 3 : 0;
+            const total = abilityMod + (skillState.ranks || 0) + (skillState.misc || 0) + classSkillBonus;
+
+            const skillRow = document.createElement('div');
+            skillRow.className = "flex w-full items-center space-x-2 py-0.5 border-b border-gray-700/50";
+            skillRow.innerHTML = `
+                <input type="checkbox" class="form-checkbox h-4 w-4 bg-gray-700 border-gray-500 text-cyan-500 flex-shrink-0" ${skillState.isClassSkill ? 'checked' : ''} data-path="skills.${skill.name}.isClassSkill">
+                <div class="flex-grow">
+                    <span class="text-sm text-white truncate">${skill.name}${skill.trainedOnly ? '<span class="text-xs text-red-400 ml-1">*</span>' : ''}</span>
+                </div>
+                <div class="w-16 text-center font-bold text-lg">${formatModifier(total)}</div>
+                <div class="w-20 text-center text-xs text-gray-400">${skill.ability} (${formatModifier(abilityMod)})</div>
+                <input type="number" class="w-16 form-input-custom text-center" value="${skillState.ranks || ''}" data-path="skills.${skill.name}.ranks">
+                <input type="number" class="w-16 form-input-custom text-center" value="${skillState.misc || ''}" data-path="skills.${skill.name}.misc">
+            `;
+            columnDiv.appendChild(skillRow);
+        });
+        container.appendChild(columnDiv);
+    });
+    bindEventListenersForContainer(container);
+}
+
+
+function renderDynamicListSections() {
+    const sections = [
+        {
+            id: 'racialAbilities-section', title: 'Racial Abilities', arrayName: 'racialAbilities',
+            itemTemplate: { name: '', reference: '' },
+            columns: [
+                { name: 'Ability', field: 'name', placeholder: 'Ability Name', className: 'col-span-3' },
+                { name: 'Reference', field: 'reference', placeholder: 'Source/Page', className: 'col-span-4' },
+            ]
+        },
+        {
+            id: 'specialAbilities-section', title: 'Class/Special Abilities', arrayName: 'specialAbilities',
+            itemTemplate: { name: '', level: '', reference: '' },
+            columns: [
+                { name: 'Ability', field: 'name', placeholder: 'Ability Name', className: 'col-span-4' },
+                { name: 'Level', field: 'level', placeholder: 'Lvl', className: 'col-span-1' },
+                { name: 'Reference', field: 'reference', placeholder: 'Source/Page', className: 'col-span-2' },
+            ]
+        },
+        {
+            id: 'feats-section', title: 'Feats', arrayName: 'feats',
+            itemTemplate: { name: '', reference: '' },
+            columns: [
+                { name: 'Feat', field: 'name', placeholder: 'Feat Name', className: 'col-span-3' },
+                { name: 'Reference', field: 'reference', placeholder: 'Source/Page', className: 'col-span-4' },
+            ]
+        },
+         {
+            id: 'magicalEquipment-section', title: 'Magical Equipment', arrayName: 'magicalEquipment',
+            itemTemplate: { item: '', wt: '', location: '' },
+            columns: [
+                { name: 'Item', field: 'item', placeholder: 'Item Name', className: 'col-span-4' },
+                { name: 'Location', field: 'location', placeholder: 'Location', className: 'col-span-2' },
+                { name: 'Wt.', field: 'wt', placeholder: 'lbs', className: 'col-span-1' },
+            ]
+        },
+        {
+            id: 'mundaneEquipment-section', title: 'Mundane Equipment', arrayName: 'mundaneEquipment',
+            itemTemplate: { item: '', description: '', location: '', wt: '' },
+            columns: [
+                { name: 'Item', field: 'item', placeholder: 'Item Name', className: 'col-span-2' },
+                { name: 'Description', field: 'description', placeholder: 'Description', className: 'col-span-3' },
+                { name: 'Location', field: 'location', placeholder: 'Location/Slot', className: 'col-span-1' },
+                { name: 'Wt.', field: 'wt', placeholder: 'lbs', className: 'col-span-1' },
+            ]
+        }
+    ];
+
+    sections.forEach(section => {
+        const container = document.getElementById(section.id);
+        const renderFunc = () => {
+            const singularTitle = section.title.replace(/ies$/, 'y').replace(/s$/, '');
+            let headerHtml = section.columns.map(c => `<span class="${c.className}">${c.name}</span>`).join('');
+
+            let itemsHtml = characterState[section.arrayName].map((item, index) => {
+                let inputsHtml = section.columns.map(col => `
+                    <input type="text" placeholder="${col.placeholder}" class="${col.className} form-input-custom w-full" value="${item[col.field] || ''}" data-array="${section.arrayName}" data-index="${index}" data-field="${col.field}">
+                `).join('');
+                return `
+                    <div class="grid grid-cols-1 md:grid-cols-8 gap-2 items-center">
+                        ${inputsHtml}
+                        <button class="remove-item-button text-red-500 hover:text-red-400 font-bold text-right pr-2" data-array="${section.arrayName}" data-index="${index}">X</button>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <h2 class="section-title">${section.title}</h2>
+                <div class="space-y-2">
+                    <div class="hidden md:grid grid-cols-8 gap-2 text-xs uppercase font-bold text-gray-400">
+                        ${headerHtml}
+                        <span class="col-span-1"></span>
+                    </div>
+                    <div class="list-container">${itemsHtml}</div>
+                </div>
+                <button class="add-item-button mt-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 px-4 rounded" data-array="${section.arrayName}">Add ${singularTitle}</button>
+            `;
+            
+            // Bind events for the newly created elements
+            container.querySelector('.add-item-button').onclick = () => {
+                characterState[section.arrayName].push({ ...section.itemTemplate });
+                renderFunc();
+                bindEventListeners();
+            };
+            container.querySelectorAll('.remove-item-button').forEach(btn => {
+                btn.onclick = (e) => {
+                    const arrayName = e.target.dataset.array;
+                    const index = parseInt(e.target.dataset.index, 10);
+                    characterState[arrayName].splice(index, 1);
+                    renderFunc();
+                    bindEventListeners();
+                };
+            });
+             bindEventListenersForContainer(container.querySelector('.list-container'));
+        };
+        renderFunc();
+    });
+}
+
+function renderSpellcasting() {
+    const container = document.getElementById('spellcasting-levels');
+    let html = '';
+    characterState.spellcasting.levels.forEach((level, index) => {
+        html += `
+            <div class="grid grid-cols-5 gap-x-2 items-center">
+                <div class="bg-gray-900 text-white font-bold text-lg rounded-md p-2 text-center">${index}</div>
+                <input class="form-input-custom text-center" type="text" value="${level.known}" data-array="spellcasting.levels" data-index="${index}" data-field="known">
+                <input class="form-input-custom text-center" type="text" value="${level.perDay}" data-array="spellcasting.levels" data-index="${index}" data-field="perDay">
+                <input class="form-input-custom text-center" type="text" value="${level.bonus}" data-array="spellcasting.levels" data-index="${index}" data-field="bonus">
+                <input class="form-input-custom text-center" type="text" value="${level.dc}" data-array="spellcasting.levels" data-index="${index}" data-field="dc">
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function renderArmorShield() {
+    const container = document.getElementById('armor-shield-list');
+    let html = '';
+    const rows = [
+        { type: 'armor1', label: 'Armor' },
+        { type: 'armor2', label: 'Armor' },
+        { type: 'shield', label: 'Shield' }
+    ];
+    rows.forEach(row => {
+        const data = characterState.armorAndShield[row.type];
+        html += `
+        <div class="grid grid-cols-10 gap-x-2 gap-y-1 items-center">
+            <input data-path="armorAndShield.${row.type}.type" value="${data.type || ''}" placeholder="${row.label}" class="col-span-3 form-input-custom">
+            <input data-path="armorAndShield.${row.type}.ac" value="${data.ac || ''}" class="form-input-custom text-center">
+            <input data-path="armorAndShield.${row.type}.maxDex" value="${data.maxDex || ''}" class="form-input-custom text-center">
+            <input data-path="armorAndShield.${row.type}.check" value="${data.check || ''}" class="form-input-custom text-center">
+            <input data-path="armorAndShield.${row.type}.spellFail" value="${data.spellFail || ''}" class="form-input-custom text-center">
+            <input data-path="armorAndShield.${row.type}.wt" value="${data.wt || ''}" class="col-span-1 form-input-custom text-center">
+             <input data-path="armorAndShield.${row.type}.donTime" value="${data.donTime || ''}" class="col-span-2 form-input-custom text-center">
+        </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function renderCurrency() {
+    const container = document.getElementById('currency-inputs');
+     const currencies = [
+        { name: 'pp', label: 'Platinum' }, { name: 'gp', label: 'Gold' },
+        { name: 'sp', label: 'Silver' }, { name: 'cp', label: 'Copper' }
+    ];
+    let html = '';
+    currencies.forEach(c => {
+        html += `
+        <div class="text-center">
+            <input type="number" class="form-input-custom text-center" data-path="currency.${c.name}">
+            <label class="label-sm">${c.label}</label>
+        </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+function renderEncumbrance() {
+    const container = document.getElementById('encumbrance-details');
+    const str = characterState.abilityScores.STR;
+    const capacity = CARRYING_CAPACITY_TABLE[str] || { light: 0, medium: 0, heavy: 0 };
+    
+    const totalWeight = [
+        characterState.armorAndShield.armor1.wt,
+        characterState.armorAndShield.armor2.wt,
+        characterState.armorAndShield.shield.wt,
+        ...characterState.magicalEquipment.map(i => i.wt),
+        ...characterState.mundaneEquipment.map(i => i.wt)
+    ].reduce((sum, wt) => sum + (parseFloat(wt) || 0), 0);
+
+    container.innerHTML = `
+        <div class="text-center mb-2">
+            <div class="label-sm">Current Load</div>
+            <div class="text-2xl font-bold">${totalWeight.toFixed(2)} lbs</div>
+        </div>
+        <div class="grid grid-cols-3 text-center text-sm">
+            <div class="border-r border-gray-600"><div class="font-bold text-white">Light</div><div>&lt; ${capacity.light} lbs</div></div>
+            <div class="border-r border-gray-600"><div class="font-bold text-white">Medium</div><div>${capacity.light}-${capacity.medium} lbs</div></div>
+            <div><div class="font-bold text-white">Heavy</div><div>${capacity.medium}-${capacity.heavy} lbs</div></div>
+        </div>
+        <div class="mt-3 text-center">
+            <div class="label-sm">Feats of Strength</div>
+            <div class="text-sm grid grid-cols-2 gap-2 mt-1">
+                <span>Lift Over Head: <strong>${capacity.heavy} lbs</strong></span>
+                <span>Push or Drag: <strong>${capacity.heavy * 5} lbs</strong></span>
+            </div>
+        </div>
+    `;
+}
+
+// --- EVENT BINDING ---
+function handleInputChange(e) {
+    const el = e.target;
+    const path = el.dataset.path;
+    const arrayName = el.dataset.array;
+    
+    if (path) {
+        const value = el.type === 'checkbox' ? el.checked : el.value;
+        updateState(path, value, el);
+    } else if (arrayName) {
+        const index = parseInt(el.dataset.index, 10);
+        const field = el.dataset.field;
+        
+        let targetArray;
+        if (arrayName.includes('.')) {
+             // Handle nested array like spellcasting.levels
+            const [section, subSection] = arrayName.split('.');
+            targetArray = characterState[section][subSection];
+        } else {
+            targetArray = characterState[arrayName];
+        }
+
+        if(targetArray && targetArray[index]){
+             targetArray[index][field] = el.value;
+        }
+        updateUI(); // We need a full UI update for things like weight calculation
+    }
+}
+
+function bindEventListeners() {
+    document.querySelectorAll('input, textarea').forEach(input => {
+        // Remove old listener to prevent duplicates
+        input.removeEventListener('input', handleInputChange);
+        input.addEventListener('input', handleInputChange);
+    });
+}
+function bindEventListenersForContainer(container) {
+    container.querySelectorAll('input, textarea').forEach(input => {
+        input.removeEventListener('input', handleInputChange);
+        input.addEventListener('input', handleInputChange);
+    });
+}
+
+
+// --- SAVE/LOAD/PRINT LOGIC ---
+function saveToJson() {
+    const dataStr = JSON.stringify(characterState, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+    const exportFileDefaultName = `${characterState.name.replace(/\s/g, '_') || 'pathfinder-character'}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+}
+
+function loadFromJson() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.onchange = e => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.readAsText(file, 'UTF-8');
+        reader.onload = readerEvent => {
+            try {
+                const loadedState = JSON.parse(readerEvent.target.result);
+                // Deep merge the loaded state with the initial state to ensure all keys are present
+                characterState = deepMerge(getInitialState(), loadedState);
+                populateFormFromState();
+                updateUI();
+            } catch (error) {
+                console.error("Error parsing JSON:", error);
+                showModal("Error parsing JSON file. Please ensure it is a valid character sheet file.");
+            }
+        }
+    }
+    input.click();
+}
+
+function deepMerge(target, source) {
+    const output = { ...target };
+    if (isObject(target) && isObject(source)) {
+        Object.keys(source).forEach(key => {
+            if (isObject(source[key])) {
+                if (!(key in target)) {
+                    Object.assign(output, { [key]: source[key] });
+                } else {
+                    output[key] = deepMerge(target[key], source[key]);
+                }
+            } else if (Array.isArray(source[key])) {
+                 output[key] = [...source[key]];
+            } else {
+                Object.assign(output, { [key]: source[key] });
+            }
+        });
+    }
+    return output;
+}
+
+function isObject(item) {
+    return (item && typeof item === 'object' && !Array.isArray(item));
+}
+
+function showModal(message) {
+    document.getElementById('modal-text').textContent = message;
+    document.getElementById('modal-container').classList.remove('hidden');
+}
+
+/**
+ * PDF GENERATION FUNCTION - REBUILT FROM SCRATCH
+ * This function generates a searchable, greyscale PDF of the character sheet.
+ */
+function printDocument() {
+    const { jsPDF } = window.jspdf;
+
+    if (!jsPDF || typeof jsPDF.API.autoTable !== 'function') {
+        showModal("PDF generation library is not loaded correctly. Please try again in a moment.");
+        return;
+    }
+    
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const state = characterState;
+    const margin = 10;
+    const pageH = doc.internal.pageSize.getHeight();
+    const contentW = doc.internal.pageSize.getWidth() - (margin * 2);
+    let y = margin;
+    
+    const GREY = {
+        TEXT: [50, 50, 50],
+        LINE_DARK: [100, 100, 100],
+        LINE_LIGHT: [180, 180, 180],
+        FILL_HEADER: [220, 220, 220],
+        FILL_ROW: [240, 240, 240],
+    };
+
+    const greyTheme = {
+        theme: 'grid',
+        styles: { textColor: GREY.TEXT, lineColor: GREY.LINE_LIGHT, lineWidth: 0.1 },
+        headStyles: { fillColor: GREY.FILL_HEADER, textColor: [0, 0, 0], fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: GREY.FILL_ROW }
+    };
+
+    const checkY = (heightNeeded) => {
+        if (y + heightNeeded > pageH - margin) {
+            doc.addPage();
+            y = margin;
+        }
+    };
+    
+    const drawSectionTitle = (title) => {
+        checkY(10);
+        doc.setFontSize(14).setFont(undefined, 'bold');
+        doc.setTextColor(...GREY.TEXT);
+        doc.text(title, margin, y);
+        doc.setDrawColor(...GREY.LINE_DARK);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y + 1.5, contentW + margin, y + 1.5);
+        y += 8;
+    };
+    
+    const drawTextArea = (title, text) => {
+        drawSectionTitle(title);
+        checkY(15);
+        const lines = doc.splitTextToSize(text || '(None)', contentW);
+        doc.setFontSize(10).setFont(undefined, 'normal');
+        doc.setTextColor(...GREY.TEXT);
+        doc.text(lines, margin, y);
+        y += (lines.length * 4) + 5;
+    }
+
+    // --- PDF Content Drawing ---
+    doc.setTextColor(...GREY.TEXT);
+    
+    // Title
+    doc.setFontSize(20).setFont(undefined, 'bold');
+    doc.text(state.name || "Pathfinder Character Sheet", doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
+    y += 10;
+
+    // Character Info
+    doc.autoTable({
+        startY: y, ...greyTheme,
+        body: [
+            [{ content: 'Character Info', colSpan: 4, styles: { fontStyle: 'bold', fillColor: GREY.FILL_HEADER, textColor: [0,0,0] } }],
+            ['Name', state.name || '', 'Class & Level', state.classLevel || ''],
+            ['Race', state.race || '', 'Alignment', state.alignment || ''],
+            ['Character Level', state.characterLevel || '', 'Campaign', state.campaign || ''],
+            ['Height', state.height || '', 'Weight', state.weight || ''],
+            [{ content: `Description: ${state.description || ''}`, colSpan: 4 }],
+        ],
+    });
+    y = doc.autoTable.previous.finalY + 5;
+    
+    // Ability Scores
+    drawSectionTitle("Ability Scores");
+    const abilityData = ABILITIES.map(ab => ({
+        title: ab,
+        score: String(state.abilityScores[ab] || 10),
+        mod: formatModifier(calculateModifier(state.abilityScores[ab]))
+    }));
+    doc.autoTable({ startY: y, ...greyTheme,
+        head: [abilityData.map(a => a.title)], body: [abilityData.map(a => a.score), abilityData.map(a => a.mod)],
+        headStyles: { ...greyTheme.headStyles, halign: 'center' }, bodyStyles: { halign: 'center' }
+    });
+    y = doc.autoTable.previous.finalY + 5;
+    
+    // Combat Stats
+    drawSectionTitle("Combat");
+    const dexMod = calculateModifier(state.abilityScores.DEX);
+    const strMod = calculateModifier(state.abilityScores.STR);
+    const sizeMod = state.ac.size || 0;
+    const totalAc = 10 + (state.ac.armor || 0) + (state.ac.shield || 0) + dexMod + sizeMod + (state.ac.natural || 0) + (state.ac.deflect || 0) + (state.ac.dodge || 0);
+    const initiativeTotal = dexMod + (state.initiative.misc || 0);
+    const cmbTotal = (state.bab || 0) + strMod + sizeMod + (state.cmb.misc || 0);
+    const cmdTotal = 10 + (state.bab || 0) + strMod + dexMod + sizeMod + (state.ac.dodge || 0) + (state.ac.deflect || 0) + (state.cmd.misc || 0);
+    doc.autoTable({ startY: y, ...greyTheme,
+        body: [
+            [{ content: 'Vitals & AC', colSpan: 2, styles: { fontStyle: 'bold', fillColor: GREY.FILL_HEADER, textColor: [0,0,0]} },
+             { content: 'Saves', colSpan: 2, styles: { fontStyle: 'bold', fillColor: GREY.FILL_HEADER, textColor: [0,0,0]} }],
+            ['Max HP', state.hp.max, 'Fortitude', formatModifier((state.saves.fortitude.base||0) + calculateModifier(state.abilityScores.CON) + (state.saves.fortitude.magic||0) + (state.saves.fortitude.misc||0))],
+            ['Current HP', state.hp.current, 'Reflex', formatModifier((state.saves.reflex.base||0) + dexMod + (state.saves.reflex.magic||0) + (state.saves.reflex.misc||0))],
+            ['DR / SR', `${state.resistances.dr || '-'} / ${state.resistances.sr || '-'}`, 'Will', formatModifier((state.saves.will.base||0) + calculateModifier(state.abilityScores.WIS) + (state.saves.will.magic||0) + (state.saves.will.misc||0))],
+            ['Total AC', totalAc, 'Initiative', formatModifier(initiativeTotal)],
+            ['BAB', state.bab, 'CMB / CMD', `${formatModifier(cmbTotal)} / ${cmdTotal}`]
+        ]
+    });
+    y = doc.autoTable.previous.finalY + 5;
+
+    // Weapons
+    drawSectionTitle("Weapons");
+    let weaponsBody = state.weapons.map(w => [w.name, w.attack, w.damage, w.critical, w.notes]);
+    if (weaponsBody.every(row => row.every(cell => !cell || cell.trim() === ''))) {
+        weaponsBody = [['---', '---', '---', '---', '---']];
+    }
+    doc.autoTable({ startY: y, ...greyTheme, head: [['Weapon', 'Attack Bonus', 'Damage', 'Critical', 'Notes']], body: weaponsBody });
+    y = doc.autoTable.previous.finalY + 5;
+
+    // Skills - Two Column Layout
+    drawSectionTitle("Skills");
+    checkY(40);
+    const allSkillsData = SKILLS_DATA.map(skill => {
+        const skillState = characterState.skills[skill.name];
+        const abilityMod = calculateModifier(characterState.abilityScores[skill.ability]);
+        const classSkillBonus = (skillState.isClassSkill && skillState.ranks > 0) ? 3 : 0;
+        const total = abilityMod + (skillState.ranks || 0) + (skillState.misc || 0) + classSkillBonus;
+        return [`${skill.name} ${skillState.isClassSkill ? '(C)' : ''}${skill.trainedOnly ? '*' : ''}`, formatModifier(total), formatModifier(abilityMod), skillState.ranks || '0', skillState.misc || '0'];
+    });
+
+    const middleIndex = Math.ceil(allSkillsData.length / 2);
+    const leftSkills = allSkillsData.slice(0, middleIndex);
+    const rightSkills = allSkillsData.slice(middleIndex);
+    
+    // Merge the two columns into a single body for one table
+    const mergedSkillsBody = [];
+    const numRows = Math.max(leftSkills.length, rightSkills.length);
+    for (let i = 0; i < numRows; i++) {
+        const leftRow = leftSkills[i] || ['','','','',''];
+        const rightRow = rightSkills[i] || ['','','','',''];
+        mergedSkillsBody.push([...leftRow, '', ...rightRow]);
+    }
+
+    const skillHeaders = ['Skill', 'Total', 'Mod', 'Ranks', 'Misc'];
+    doc.autoTable({
+        startY: y,
+        ...greyTheme,
+        theme: 'striped',
+        head: [[...skillHeaders, '', ...skillHeaders]],
+        body: mergedSkillsBody,
+        styles: {...greyTheme.styles, fontSize: 7, cellPadding: 0.5},
+        headStyles: {...greyTheme.headStyles, fontSize: 7, cellPadding: 1, halign: 'center'},
+        columnStyles: {
+            // Left column
+            0: { cellWidth: 32 }, 1: {cellWidth: 10, halign: 'center'}, 2: {cellWidth: 10, halign: 'center'}, 3: {cellWidth: 10, halign: 'center'}, 4: {cellWidth: 10, halign: 'center'},
+            // Gutter
+            5: { cellWidth: 4, },
+            // Right Column
+            6: { cellWidth: 32 }, 7: {cellWidth: 10, halign: 'center'}, 8: {cellWidth: 10, halign: 'center'}, 9: {cellWidth: 10, halign: 'center'}, 10: {cellWidth: 10, halign: 'center'},
+        },
+        didDrawCell: (data) => {
+            // This is to remove the border from the gutter column
+            if (data.column.index === 5) {
+                doc.setDrawColor(255, 255, 255); // Set to white
+            }
+        }
+    });
+    y = doc.autoTable.previous.finalY + 5;
+    
+    checkY(pageH);
+
+    // Feats, Abilities
+    drawSectionTitle("Feats & Abilities");
+    let featsBody = [
+        ...state.feats.filter(i=>i.name).map(i => ['Feat', i.name, i.reference]),
+        ...state.racialAbilities.filter(i=>i.name).map(i => ['Racial', i.name, i.reference]),
+        ...state.specialAbilities.filter(i=>i.name).map(i => ['Special', i.name, i.reference]),
+    ];
+    if (featsBody.length === 0) {
+        featsBody = [['---', '---', '---']];
+    }
+    doc.autoTable({ startY: y, ...greyTheme, head: [['Type', 'Name', 'Reference']], body: featsBody });
+    y = doc.autoTable.previous.finalY + 5;
+    
+    // Spells
+    drawSectionTitle("Spells");
+    let spellsBody = state.spellcasting.levels.map(s => [s.level, s.known, s.perDay, s.bonus, s.dc]);
+     if (spellsBody.every(row => row.slice(1).every(cell => !cell || cell.trim() === ''))) {
+        spellsBody = [[0, '---', '---', '---', '---']];
+    }
+    doc.autoTable({ startY: y, ...greyTheme, head: [['Lvl', 'Spells Known', 'Spells/Day', 'Bonus Spells', 'Save DC']], body: spellsBody });
+    y = doc.autoTable.previous.finalY + 5;
+
+    // Equipment
+    drawSectionTitle("Equipment");
+    let armorBody = Object.values(state.armorAndShield).map(a => [a.type, a.ac, a.maxDex, a.check, a.spellFail, a.wt]);
+    if (armorBody.every(row => row.every(cell => !cell || cell.trim() === ''))) {
+        armorBody = [['---', '---', '---', '---', '---', '---']];
+    }
+    doc.autoTable({ startY: y, ...greyTheme, head: [['Armor/Shield', 'AC Bonus', 'Max Dex', 'Check Pen', 'Spell Fail %', 'Weight']], body: armorBody });
+    y = doc.autoTable.previous.finalY + 2;
+
+    let magicBody = state.magicalEquipment.map(i => [i.item, i.location, i.wt]);
+     if (magicBody.every(row => row.every(cell => !cell || cell.trim() === ''))) {
+        magicBody = [['---', '---', '---']];
+    }
+    doc.autoTable({ startY: y, ...greyTheme, head: [['Magical Item', 'Location', 'Weight']], body: magicBody });
+    y = doc.autoTable.previous.finalY + 2;
+
+    let mundaneBody = state.mundaneEquipment.map(i => [i.item, i.description, i.location, i.wt]);
+    if (mundaneBody.every(row => row.every(cell => !cell || cell.trim() === ''))) {
+        mundaneBody = [['---', '---', '---', '---']];
+    }
+    doc.autoTable({ startY: y, ...greyTheme, head: [['Item', 'Description', 'Location', 'Weight']], body: mundaneBody });
+    y = doc.autoTable.previous.finalY + 5;
+    
+    // Notes
+    drawTextArea("Character History", state.characterHistory);
+    drawTextArea("Notes", state.notes);
+
+    // --- SAVE DOCUMENT ---
+    doc.save(`${state.name.replace(/\s/g, '_') || 'pathfinder-character'}.pdf`);
+}
+
+
+function populateFormFromState() {
+    document.querySelectorAll('[data-path]').forEach(el => {
+        const path = el.dataset.path;
+        let value = characterState;
+        try {
+            path.split('.').forEach(key => { value = value[key]; });
+            if (el.type === 'checkbox') {
+                el.checked = value;
+            } else {
+                el.value = value || '';
+            }
+        } catch (e) {
+            // value not found in state, do nothing
+        }
+    });
+     // Re-render dynamic lists
+    renderWeapons();
+    renderDynamicListSections();
+    renderSpellcasting();
+}
+
+
+// --- INITIALIZATION ---
+function initializeApp() {
+    characterState = getInitialState();
+    renderInitialHTML();
+    populateFormFromState();
+    updateUI();
+
+    // Menu toggle logic
+    const menuButton = document.getElementById('file-menu-button');
+    const menu = document.getElementById('file-menu');
+    menuButton.addEventListener('click', () => {
+        menu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', (event) => {
+        if (!menu.classList.contains('hidden') && !menuButton.contains(event.target) && !menu.contains(event.target)) {
+            menu.classList.add('hidden');
+        }
+    });
+
+    // Modal close button
+    document.getElementById('modal-close-button').addEventListener('click', () => {
+        document.getElementById('modal-container').classList.add('hidden');
+    });
+
+    // Button event listeners
+    document.getElementById('add-weapon-button').addEventListener('click', () => {
+        characterState.weapons.push({ name: '', attack: '', damage: '', critical: '', notes: '' });
+        renderWeapons();
+        bindEventListeners(); // Re-bind for new inputs
+    });
+    document.getElementById('save-json-button').onclick = saveToJson;
+    document.getElementById('load-json-button').onclick = loadFromJson;
+    document.getElementById('print-pdf-button').onclick = printDocument;
+}
+
+// Start the application
+initializeApp();
+
+});
+</script>
+
+</body>
+</html>
